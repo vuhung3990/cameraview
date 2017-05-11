@@ -49,6 +49,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Set;
 
 
@@ -133,12 +135,14 @@ public class MainActivity extends AppCompatActivity implements
                 Manifest.permission.CAMERA)) {
             ConfirmationDialogFragment
                     .newInstance(R.string.camera_permission_confirmation,
-                            new String[]{Manifest.permission.CAMERA},
+                            new String[]{Manifest.permission.CAMERA,
+                                    Manifest.permission.WRITE_EXTERNAL_STORAGE},
                             REQUEST_CAMERA_PERMISSION,
                             R.string.camera_permission_not_granted)
                     .show(getSupportFragmentManager(), FRAGMENT_DIALOG);
         } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     REQUEST_CAMERA_PERMISSION);
         }
     }
@@ -167,10 +171,11 @@ public class MainActivity extends AppCompatActivity implements
             @NonNull int[] grantResults) {
         switch (requestCode) {
             case REQUEST_CAMERA_PERMISSION:
-                if (permissions.length != 1 || grantResults.length != 1) {
+                if (permissions.length != 2 || grantResults.length != 2) {
                     throw new RuntimeException("Error on requesting camera permission.");
                 }
-                if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                if (grantResults[0] != PackageManager.PERMISSION_GRANTED
+                        || grantResults[1] != PackageManager.PERMISSION_GRANTED) {
                     Toast.makeText(this, R.string.camera_permission_not_granted,
                             Toast.LENGTH_SHORT).show();
                 }
@@ -252,11 +257,12 @@ public class MainActivity extends AppCompatActivity implements
             Log.d(TAG, "onPictureTaken " + data.length);
             Toast.makeText(cameraView.getContext(), R.string.picture_taken, Toast.LENGTH_SHORT)
                     .show();
+
             getBackgroundHandler().post(new Runnable() {
                 @Override
                 public void run() {
-                    File file = new File(getExternalFilesDir(Environment.DIRECTORY_PICTURES),
-                            "picture.jpg");
+                    File file = new File(Environment.getExternalStoragePublicDirectory(
+                            Environment.DIRECTORY_PICTURES), "IMG_" + new SimpleDateFormat("ddMMyyyyHHmmss").format(new Date()).toString() + ".jpg");
                     OutputStream os = null;
                     try {
                         os = new FileOutputStream(file);
