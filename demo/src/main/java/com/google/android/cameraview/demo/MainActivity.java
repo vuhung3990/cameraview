@@ -40,6 +40,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import com.google.android.cameraview.AspectRatio;
@@ -51,6 +52,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Set;
 
 
@@ -104,15 +106,14 @@ public class MainActivity extends AppCompatActivity implements
             }
         }
     };
+    private FrameLayout cameraContainer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mCameraView = (CameraView) findViewById(R.id.camera);
-        if (mCameraView != null) {
-            mCameraView.addCallback(mCallback);
-        }
+
+        cameraContainer = (FrameLayout) findViewById(R.id.camera_container);
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.take_picture);
         if (fab != null) {
             fab.setOnClickListener(mOnClickListener);
@@ -130,6 +131,8 @@ public class MainActivity extends AppCompatActivity implements
         super.onResume();
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
+
+            addCameraToView();
             mCameraView.start();
         } else if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                 Manifest.permission.CAMERA)) {
@@ -145,6 +148,19 @@ public class MainActivity extends AppCompatActivity implements
                             Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     REQUEST_CAMERA_PERMISSION);
         }
+    }
+
+    private void addCameraToView() {
+        mCameraView = new CameraView(this);
+        mCameraView.setAutoFocus(true);
+        mCameraView.setFlash(CameraView.FLASH_ON);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+        mCameraView.setLayoutParams(lp);
+        mCameraView.addCallback(mCallback);
+
+        cameraContainer.removeAllViews();
+        cameraContainer.addView(mCameraView);
     }
 
     @Override
@@ -214,8 +230,13 @@ public class MainActivity extends AppCompatActivity implements
             case R.id.switch_camera:
                 if (mCameraView != null) {
                     int facing = mCameraView.getFacing();
-                    mCameraView.setFacing(facing == CameraView.FACING_FRONT ?
-                            CameraView.FACING_BACK : CameraView.FACING_FRONT);
+                    if (facing == CameraView.FACING_BACK) {
+                        mCameraView.setFacing(CameraView.FACING_FRONT);
+                    } else {
+                        mCameraView.stop();
+                        addCameraToView();
+                        mCameraView.start();
+                    }
                 }
                 return true;
         }
@@ -262,7 +283,7 @@ public class MainActivity extends AppCompatActivity implements
                 @Override
                 public void run() {
                     File file = new File(Environment.getExternalStoragePublicDirectory(
-                            Environment.DIRECTORY_PICTURES), "IMG_" + new SimpleDateFormat("ddMMyyyyHHmmss").format(new Date()).toString() + ".jpg");
+                            Environment.DIRECTORY_PICTURES), "IMG_" + new SimpleDateFormat("ddMMyyyyHHmmss", Locale.US).format(new Date()) + ".jpg");
                     OutputStream os = null;
                     try {
                         os = new FileOutputStream(file);
